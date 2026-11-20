@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#070b16" />
+  <title>TAPDROP WEB — Peer-to-Peer File Transfer</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+</head>
+<body>
+  <div class="aurora" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">⇄</div>
+      <div>
+        <h1>TAPDROP</h1>
+        <p>WEB</p>
+      </div>
+    </div>
+    <button id="themeBtn" class="icon-btn" aria-label="Toggle theme">🌙</button>
+  </header>
+
+  <main>
+    <!-- HOME -->
+    <section id="screen-home" class="screen active">
+      <div class="hero">
+        <div class="pulse-ring"></div>
+        <div class="hero-icon">📡</div>
+        <h2>Share files directly</h2>
+        <p>Phone-to-phone transfer using an encrypted WebRTC connection.</p>
+      </div>
+
+      <div class="status-card" id="statusCard">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">Not connected</span>
+      </div>
+
+      <div class="actions">
+        <button id="sendBtn" class="primary-btn"><span>📤</span> SEND FILE</button>
+        <button id="receiveBtn" class="secondary-btn"><span>📥</span> RECEIVE FILE</button>
+      </div>
+
+      <button id="settingsBtn" class="ghost-btn">Connection settings</button>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="screen-settings" class="screen">
+      <button class="back-btn" data-back="home">← Back</button>
+      <h2>Connection settings</h2>
+
+      <label class="field">
+        <span>Signaling server (filled in automatically)</span>
+        <input id="signalUrl" type="url" placeholder="wss://your-app.onrender.com/signal" autocomplete="off" />
+      </label>
+
+      <label class="field">
+        <span>TURN server URL — optional</span>
+        <input id="turnUrl" type="url" placeholder="turn:your-turn-server:3478" autocomplete="off" />
+      </label>
+
+      <div class="grid2">
+        <label class="field">
+          <span>TURN username</span>
+          <input id="turnUser" type="text" autocomplete="off" />
+        </label>
+        <label class="field">
+          <span>TURN password</span>
+          <input id="turnPass" type="password" autocomplete="off" />
+        </label>
+      </div>
+
+      <div class="info-card">
+        <strong>How pairing works</strong>
+        <p>
+          Both phones open this same web address. The server only passes pairing details; files travel directly
+          between the phones over an encrypted WebRTC connection.
+        </p>
+        <p>
+          If the server is unreachable, use <strong>Manual pairing</strong>. A public STUN server may still be
+          used to find a direct route between the phones.
+        </p>
+      </div>
+
+      <button class="primary-btn" data-back="home">Save &amp; close</button>
+    </section>
+
+    <!-- SEND -->
+    <section id="screen-send" class="screen">
+      <button class="back-btn" data-back="home">← Back</button>
+      <h2>Send files</h2>
+
+      <label class="dropzone" for="fileInput">
+        <input id="fileInput" type="file" multiple hidden />
+        <div class="drop-icon">📁</div>
+        <strong>Choose files</strong>
+        <span>Images, video, audio, PDF, documents and ZIP</span>
+      </label>
+
+      <div id="fileList" class="file-list"></div>
+
+      <div class="mode-card">
+        <h3>Pairing method</h3>
+        <label><input type="radio" name="pairMode" value="qr" checked /> Show QR code</label>
+        <label><input type="radio" name="pairMode" value="manual" /> Manual pairing</label>
+      </div>
+
+      <button id="startSendBtn" class="primary-btn" disabled>Start connection</button>
+
+      <div id="sendPairArea" class="hidden">
+        <div id="qrCard" class="card hidden">
+          <h3>Scan this QR</h3>
+          <div id="qrBox"></div>
+          <p class="muted">On the other phone, choose <strong>Receive file</strong> and scan this code.</p>
+          <button id="copyPairBtn" class="ghost-btn">Copy pairing code</button>
+        </div>
+
+        <div id="manualSendCard" class="card hidden">
+          <h3>Manual pairing</h3>
+          <p class="muted">Paste the receiver’s offer code:</p>
+          <textarea id="offerInput" rows="6" placeholder="Paste offer code"></textarea>
+          <button id="generateAnswerBtn" class="primary-btn">Generate answer code</button>
+          <p class="muted">Send this answer code back to the receiver:</p>
+          <textarea id="answerOutput" rows="6" readonly></textarea>
+          <button id="copyAnswerBtn" class="ghost-btn">Copy answer code</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- RECEIVE -->
+    <section id="screen-receive" class="screen">
+      <button class="back-btn" data-back="home">← Back</button>
+      <h2>Receive files</h2>
+
+      <div class="mode-card">
+        <h3>Pairing method</h3>
+        <label><input type="radio" name="receiveMode" value="qr" checked /> Scan sender QR</label>
+        <label><input type="radio" name="receiveMode" value="manual" /> Manual pairing</label>
+      </div>
+
+      <div id="receiveQrArea">
+        <button id="startReceiveBtn" class="primary-btn">Open camera to scan</button>
+        <div id="scanCard" class="card hidden">
+          <h3>Scan sender QR</h3>
+          <div class="camera-wrap">
+            <video id="scanVideo" playsinline muted></video>
+            <div class="scan-frame"></div>
+          </div>
+          <p id="scanStatus" class="muted">Requesting camera…</p>
+          <button id="stopScanBtn" class="ghost-btn">Stop camera</button>
+        </div>
+      </div>
+
+      <div id="manualReceiveCard" class="card hidden">
+        <h3>Manual pairing</h3>
+        <button id="createOfferBtn" class="primary-btn">Create offer code</button>
+        <p class="muted">Send this offer code to the sender:</p>
+        <textarea id="offerOutput" rows="6" readonly></textarea>
+        <button id="copyOfferBtn" class="ghost-btn">Copy offer code</button>
+        <p class="muted">Paste the sender’s answer code:</p>
+        <textarea id="answerInput" rows="6" placeholder="Paste answer code"></textarea>
+        <button id="acceptAnswerBtn" class="primary-btn">Connect</button>
+      </div>
+
+      <div id="incomingCard" class="card hidden">
+        <h3>Incoming transfer</h3>
+        <div id="incomingInfo"></div>
+        <div class="row">
+          <button id="acceptFileBtn" class="primary-btn">Accept</button>
+          <button id="rejectFileBtn" class="danger-btn">Reject</button>
+        </div>
+      </div>
+
+      <div id="receivedList" class="file-list"></div>
+    </section>
+
+    <!-- TRANSFER -->
+    <section id="screen-transfer" class="screen">
+      <button class="back-btn" data-back="home">← Back</button>
+      <h2 id="transferTitle">Transfer</h2>
+
+      <div class="transfer-card">
+        <div class="device-animation">
+          <div class="device"></div>
+          <div class="beam"></div>
+          <div class="device"></div>
+        </div>
+
+        <div id="transferFile" class="file-name">Waiting for files…</div>
+        <div class="progress-track">
+          <div id="progressBar" class="progress-bar"></div>
+        </div>
+        <div class="transfer-stats">
+          <span id="transferPercent">0%</span>
+          <span id="transferSpeed">0 B/s</span>
+        </div>
+        <div id="transferHash" class="muted small"></div>
+      </div>
+
+      <button id="cancelTransferBtn" class="danger-btn">Cancel transfer</button>
+      <button id="retryTransferBtn" class="secondary-btn hidden">Retry failed file</button>
+    </section>
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
